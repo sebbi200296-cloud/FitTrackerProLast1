@@ -3,37 +3,31 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-export default async () => {
-  const plugins = [
-    react(),
-    runtimeErrorOverlay(),
-  ];
+// Only include cartographer plugin in non-production and when REPL_ID is defined
+const plugins = [
+  react(),
+  runtimeErrorOverlay(),
+];
 
-  if (process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined) {
-    const { cartographer } = await import("@replit/vite-plugin-cartographer");
+// Synchronously require cartographer if possible
+if (
+  process.env.NODE_ENV !== "production" &&
+  process.env.REPL_ID !== undefined
+) {
+  // Use require instead of dynamic import for deployment compatibility
+  try {
+    const { cartographer } = require("@replit/vite-plugin-cartographer");
     plugins.push(cartographer());
+  } catch (err) {
+    // Plugin not available, skip
   }
+}
 
-  return defineConfig({
-    plugins,
-    resolve: {
-      alias: {
-        "@": path.resolve(import.meta.dirname, "client", "src"),
-        "@shared": path.resolve(import.meta.dirname, "shared"),
-        "@assets": path.resolve(import.meta.dirname, "attached_assets"),
-      },
+export default defineConfig({
+  plugins,
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "client", "src"),
     },
-    root: path.resolve(import.meta.dirname, "client"),
-    build: {
-      outDir: path.resolve(import.meta.dirname, "dist/public"),
-      emptyOutDir: true,
-    },
-    server: {
-      fs: {
-        strict: true,
-        deny: ["**/.*"],
-      },
-    },
-  });
-};
-
+  },
+});
